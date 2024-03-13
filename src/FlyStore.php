@@ -17,6 +17,8 @@ class FlyStore
 
     protected $prefix = 'flyStore_';
 
+    protected $lifetime = 600;
+
     public function __construct($store = 'cache')
     {
         if (!in_array($store, $this->storeTypes)) {
@@ -58,8 +60,9 @@ class FlyStore
         }
     }
 
-    public function set($chain, $data)
+    public function set($chain, $data, int $lifetime = null)
     {
+
         $key = $this->getCacheKey($chain);
 
         $store = $this->getStore();
@@ -69,7 +72,10 @@ class FlyStore
         }
 
         if ($this->isCurrentStore('cache')) {
-            return $store->set($key, $data); // , 300
+            if ($lifetime === null) {
+                $lifetime = $this->lifetime;
+            }
+            return $store->set($key, $data, $lifetime);
         } else if ($this->isCurrentStore('session')) {
             return $store->set($key, $data);
         }
@@ -138,6 +144,12 @@ class FlyStore
 
     protected function getCacheKey($chain)
     {
+        if (is_string($chain)) {
+            $chain = [$chain];
+        } else if (!is_array($chain)) {
+            throw new Exception('The key can only be defined by string or array');
+        }
+
         return $this->prefix . md5(implode('|', array_map('md5', $chain)));
     }
 }
