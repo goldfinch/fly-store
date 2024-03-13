@@ -1,0 +1,8 @@
+---
+Name: goldfinch-fly-store
+---
+SilverStripe\Core\Injector\Injector:
+  Psr\SimpleCache\CacheInterface.flyStore:
+    factory: SilverStripe\Core\Cache\CacheFactory
+    constructor:
+      namespace: "flyStore"
