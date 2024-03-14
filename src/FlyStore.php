@@ -3,6 +3,8 @@
 namespace Goldfinch\FlyStore;
 
 use Exception;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\View\ArrayData;
 use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Injector\Injector;
@@ -17,15 +19,28 @@ class FlyStore
 
     protected $prefix = 'flyStore_';
 
+    protected $representation;
+
+    protected $representationTypes = ['json', 'serialize'];
+
     protected $lifetime = 600;
 
-    public function __construct($store = 'cache')
+    public function __construct($store = 'cache', $representation = 'json')
     {
         if (!in_array($store, $this->storeTypes)) {
             throw new Exception($store . ' store is not recognized');
         }
 
+        if (!in_array($representation, $this->representationTypes)) {
+            throw new Exception($representation . ' representation is not recognized');
+        }
+
         $this->store = $store;
+    }
+
+    public function getRepresentationType()
+    {
+        return $this->representation;
     }
 
     public function getStoreType()
@@ -62,13 +77,16 @@ class FlyStore
 
     public function set($chain, $data, int $lifetime = null)
     {
-
         $key = $this->getCacheKey($chain);
 
         $store = $this->getStore();
 
         if (!is_string($data)) {
-            $data = serialize($data);
+            if ($this->isCurrentRepresentation('json')) {
+                $data = json_encode($data);
+            } else if ($this->isCurrentRepresentation('serialize')) {
+                $data = serialize($data);
+            }
         }
 
         if ($this->isCurrentStore('cache')) {
@@ -81,7 +99,7 @@ class FlyStore
         }
     }
 
-    public function get($chain)
+    public function get($chain, $representing = false)
     {
         $key = $this->getCacheKey($chain);
 
@@ -90,10 +108,14 @@ class FlyStore
         $data = $store->get($key);
 
         if (is_string($data)) {
-            $data = unserialize($data);
+            if ($this->isCurrentRepresentation('json')) {
+                $data = json_validate($data) ? json_decode($data, true) : $data;
+            } else if ($this->isCurrentRepresentation('serialize')) {
+                $data = unserialize($data);
+            }
         }
 
-        return $data;
+        return $representing ? $this->representingData($data) : $data;
     }
 
     public function delete($chain)
@@ -137,9 +159,42 @@ class FlyStore
         return new static(...$args);
     }
 
+    protected function representingData($array)
+    {
+        if (!is_array($array)) {
+            return $array;
+        }
+
+        array_walk(
+            $array,
+            $walker = function (&$value, $key) use (&$walker) {
+                if (is_array($value)) {
+                    array_walk($value, $walker);
+
+                    if (array_is_list($value)) {
+                        $value = new ArrayList($value);
+                    }
+                }
+            },
+        );
+
+        if (array_is_list($array)) {
+            $array = new ArrayList($array);
+        } else {
+            $array = new ArrayData($array);
+        }
+
+        return $array;
+    }
+
     protected function isCurrentStore($store)
     {
         return $this->getStoreType() == $store;
+    }
+
+    protected function isCurrentRepresentation($representation)
+    {
+        return $this->getRepresentationType() == $representation;
     }
 
     protected function getCacheKey($chain)
