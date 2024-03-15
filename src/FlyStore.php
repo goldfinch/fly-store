@@ -35,6 +35,7 @@ class FlyStore
             throw new Exception($representation . ' representation is not recognized');
         }
 
+        $this->representation = $representation;
         $this->store = $store;
     }
 
@@ -81,7 +82,7 @@ class FlyStore
 
         $store = $this->getStore();
 
-        if (!is_string($data)) {
+        if (!is_string($data)) {dd($this->isCurrentRepresentation('serialize'));
             if ($this->isCurrentRepresentation('json')) {
                 $data = json_encode($data);
             } else if ($this->isCurrentRepresentation('serialize')) {
