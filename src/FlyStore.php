@@ -82,7 +82,7 @@ class FlyStore
 
         $store = $this->getStore();
 
-        if (!is_string($data)) {dd($this->isCurrentRepresentation('serialize'));
+        if (!is_string($data)) {
             if ($this->isCurrentRepresentation('json')) {
                 $data = json_encode($data);
             } else if ($this->isCurrentRepresentation('serialize')) {
