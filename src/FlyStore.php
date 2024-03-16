@@ -160,10 +160,10 @@ class FlyStore
         return new static(...$args);
     }
 
-    protected function representingData($array)
+    public static function representingData($array)
     {
         if (!is_array($array)) {
-            return $array;
+            return ArrayList::create(); // $array;
         }
 
         array_walk(
@@ -173,16 +173,18 @@ class FlyStore
                     array_walk($value, $walker);
 
                     if (array_is_list($value)) {
-                        $value = new ArrayList($value);
+                        $value = ArrayList::create($value);
+                    } else {
+                        $value = ArrayData::create($value);
                     }
                 }
             },
         );
 
         if (array_is_list($array)) {
-            $array = new ArrayList($array);
+            $array = ArrayList::create($array);
         } else {
-            $array = new ArrayData($array);
+            $array = ArrayData::create($array);
         }
 
         return $array;
