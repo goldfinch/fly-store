@@ -208,6 +208,16 @@ class FlyStore
             throw new Exception('The key can only be defined by string or array');
         }
 
+        foreach ($chain as $key => $item) {
+            if (is_array($item)) {
+                if (array_is_list($item)) {
+                    $chain[$key] = implode('|', $item);
+                } else {
+                    throw new Exception('Chain can contains array items but it must be a list array');
+                }
+            }
+        }
+
         return $this->prefix . md5(implode('|', array_map('md5', $chain)));
     }
 }
